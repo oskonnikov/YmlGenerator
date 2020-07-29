@@ -22,12 +22,17 @@ Generator supports this offer types:
 - OfferEventTicket [(event-ticket)](https://yandex.ru/support/webmaster/goods-prices/technical-requirements.xml#event-ticket)
 - OfferSimple [(empty)](https://yandex.ru/support/webmaster/goods-prices/technical-requirements.xml#base)
 
+
+This is updated version by Oleg Skonnikov (devopwr@gmail.com) with new features:
+- Promos [(link to Yandex Partner Market)](https://yandex.ru/support/partnermarket/elements/promos.html)
+
+
 Installation
 ------------
 Run composer require
 
 ```bash
-composer require bukashk0zzz/yml-generator
+composer require oskonnikov/yml-generator
 ```
 
 
@@ -101,16 +106,30 @@ $deliveries[] = (new Delivery())
     ->setOrderBefore(14)
 ;
 
+// Optional creating promos and gifts array (https://yandex.ru/support/partnermarket/elements/promos.html)
+            $promo_product_offers = [111111111,22222222,333333333];
+            $promo_gifts = [111111111];
+            $promos[] = (new Promo())
+                ->setId('123456')
+                ->setType('gift with purchase')
+                ->setStartDate('2020-05-28 00:00')
+                ->setEndDate('2020-05-30 00:00 ')
+                ->setDescription('Gift Description Here!')
+                ->setProductOffers($promo_product_offers)
+                ->setPromoGifts($promo_gifts);
+
+
 (new Generator($settings))->generate(
     $shopInfo,
     $currencies,
     $categories,
     $offers,
-    $deliveries
+    $deliveries,
+    $promos
 );
 ```
 
 Copyright / License
 -------------------
 
-See [LICENSE](https://github.com/bukashk0zzz/YmlGenerator/blob/master/LICENSE)
+See [LICENSE](https://github.com/oskonnikov/YmlGenerator/blob/master/LICENSE)

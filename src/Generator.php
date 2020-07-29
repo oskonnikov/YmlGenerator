@@ -18,6 +18,7 @@ use Bukashk0zzz\YmlGenerator\Model\Offer\OfferCondition;
 use Bukashk0zzz\YmlGenerator\Model\Offer\OfferGroupAwareInterface;
 use Bukashk0zzz\YmlGenerator\Model\Offer\OfferInterface;
 use Bukashk0zzz\YmlGenerator\Model\Offer\OfferParam;
+use Bukashk0zzz\YmlGenerator\Model\Promo;
 use Bukashk0zzz\YmlGenerator\Model\ShopInfo;
 
 /**
@@ -50,18 +51,19 @@ class Generator
         $this->settings = $settings instanceof Settings ? $settings : new Settings();
         $this->writer = new \XMLWriter();
 
-        if ($this->settings->getOutputFile() !== null && $this->settings->getReturnResultYMLString()) {
+        if($this->settings->getOutputFile() !== null && $this->settings->getReturnResultYMLString()){
             throw new \LogicException('Only one destination need to be used ReturnResultYMLString or OutputFile');
         }
 
-        if ($this->settings->getReturnResultYMLString()) {
+        if($this->settings->getReturnResultYMLString()){
             $this->writer->openMemory();
-        } else {
+        }
+        else{
             $this->tmpFile = $this->settings->getOutputFile() !== null ? \tempnam(\sys_get_temp_dir(), 'YMLGenerator') : 'php://output';
             $this->writer->openURI($this->tmpFile);
         }
 
-        if ($this->settings->getIndentString()) {
+        if($this->settings->getIndentString()){
             $this->writer->setIndentString($this->settings->getIndentString());
             $this->writer->setIndent(true);
         }
@@ -69,40 +71,41 @@ class Generator
 
     /**
      * @param ShopInfo $shopInfo
-     * @param array    $currencies
-     * @param array    $categories
-     * @param array    $offers
-     * @param array    $deliveries
+     * @param array $currencies
+     * @param array $categories
+     * @param array $offers
+     * @param array $deliveries
      *
      * @return bool
      */
-    public function generate(ShopInfo $shopInfo, array $currencies, array $categories, array $offers, array $deliveries = [])
+    public function generate(ShopInfo $shopInfo, array $currencies, array $categories, array $offers, array $deliveries = [], array $promos = [])
     {
-        try {
+        try{
             $this->addHeader();
 
             $this->addShopInfo($shopInfo);
             $this->addCurrencies($currencies);
             $this->addCategories($categories);
 
-            if (\count($deliveries) !== 0) {
+            if(\count($deliveries) !== 0){
                 $this->addDeliveries($deliveries);
             }
 
             $this->addOffers($offers);
+            $this->addPromos($promos);
             $this->addFooter();
 
-            if ($this->settings->getReturnResultYMLString()) {
+            if($this->settings->getReturnResultYMLString()){
                 return $this->writer->flush();
             }
 
-            if (null !== $this->settings->getOutputFile()) {
+            if(null !== $this->settings->getOutputFile()){
                 \copy($this->tmpFile, $this->settings->getOutputFile());
                 @\unlink($this->tmpFile);
             }
 
             return true;
-        } catch (\Exception $exception) {
+        }catch(\Exception $exception){
             throw new \RuntimeException(\sprintf('Problem with generating YML file: %s', $exception->getMessage()), 0, $exception);
         }
     }
@@ -137,8 +140,8 @@ class Generator
      */
     protected function addShopInfo(ShopInfo $shopInfo)
     {
-        foreach ($shopInfo->toArray() as $name => $value) {
-            if ($value !== null) {
+        foreach($shopInfo->toArray() as $name => $value){
+            if($value !== null){
                 $this->writer->writeElement($name, $value);
             }
         }
@@ -163,7 +166,7 @@ class Generator
         $this->writer->startElement('category');
         $this->writer->writeAttribute('id', $category->getId());
 
-        if ($category->getParentId() !== null) {
+        if($category->getParentId() !== null){
             $this->writer->writeAttribute('parentId', $category->getParentId());
         }
 
@@ -179,7 +182,7 @@ class Generator
         $this->writer->startElement('option');
         $this->writer->writeAttribute('cost', $delivery->getCost());
         $this->writer->writeAttribute('days', $delivery->getDays());
-        if ($delivery->getOrderBefore() !== null) {
+        if($delivery->getOrderBefore() !== null){
             $this->writer->writeAttribute('order-before', $delivery->getOrderBefore());
         }
         $this->writer->endElement();
@@ -194,20 +197,21 @@ class Generator
         $this->writer->writeAttribute('id', $offer->getId());
         $this->writer->writeAttribute('available', $offer->isAvailable() ? 'true' : 'false');
 
-        if ($offer->getType() !== null) {
+        if($offer->getType() !== null){
             $this->writer->writeAttribute('type', $offer->getType());
         }
 
-        if ($offer instanceof OfferGroupAwareInterface && $offer->getGroupId() !== null) {
+        if($offer instanceof OfferGroupAwareInterface && $offer->getGroupId() !== null){
             $this->writer->writeAttribute('group_id', $offer->getGroupId());
         }
 
-        foreach ($offer->toArray() as $name => $value) {
-            if (\is_array($value)) {
-                foreach ($value as $itemValue) {
+        foreach($offer->toArray() as $name => $value){
+            if(\is_array($value)){
+                foreach($value as $itemValue){
                     $this->addOfferElement($name, $itemValue);
                 }
-            } else {
+            }
+            else{
                 $this->addOfferElement($name, $value);
             }
         }
@@ -228,8 +232,8 @@ class Generator
         $this->writer->startElement('currencies');
 
         /** @var Currency $currency */
-        foreach ($currencies as $currency) {
-            if ($currency instanceof Currency) {
+        foreach($currencies as $currency){
+            if($currency instanceof Currency){
                 $this->addCurrency($currency);
             }
         }
@@ -247,8 +251,8 @@ class Generator
         $this->writer->startElement('categories');
 
         /** @var Category $category */
-        foreach ($categories as $category) {
-            if ($category instanceof Category) {
+        foreach($categories as $category){
+            if($category instanceof Category){
                 $this->addCategory($category);
             }
         }
@@ -266,14 +270,59 @@ class Generator
         $this->writer->startElement('delivery-options');
 
         /** @var Delivery $delivery */
-        foreach ($deliveries as $delivery) {
-            if ($delivery instanceof Delivery) {
+        foreach($deliveries as $delivery){
+            if($delivery instanceof Delivery){
                 $this->addDelivery($delivery);
             }
         }
 
         $this->writer->fullEndElement();
     }
+
+    private function addPromos(array $promos)
+    {
+        $this->writer->startElement('promos');
+
+        /** @var Promo $promo */
+        foreach($promos as $promo){
+            if($promo instanceof Promo){
+                $this->addPromo($promo);
+            }
+        }
+        $this->writer->fullEndElement();
+    }
+
+    /**
+     * @param Promo $promo
+     */
+    protected function addPromo(Promo $promo)
+    {
+        $this->writer->startElement('promo');
+        $this->writer->writeAttribute('id', $promo->getId());
+        $this->writer->writeAttribute('type', $promo->getType());
+        $this->writer->writeElement('start-date', $promo->getStartDate());
+        $this->writer->writeElement('end-date', $promo->getEndDate());
+        $this->writer->writeElement('description', $promo->getDescription());
+        $this->writer->startElement('purchase');
+        $this->writer->writeElement('required-quantity', $promo->getRequiredQuantity());
+        foreach($promo->getProductOffers() as $product){
+            if($product !== null){
+                $this->writer->startElement('product');
+                $this->writer->writeAttribute('offer-id', $product);
+                $this->writer->endElement();
+            }
+        }
+        $this->writer->endElement();
+        $this->writer->startElement('promo-gifts');
+        foreach($promo->getPromoGifts() as $gift){
+            if($gift !== null){
+                $this->writer->startElement('promo-gift');
+                $this->writer->writeAttribute('offer-id', $gift);
+            }
+        }
+        $this->writer->endElement();
+    }
+
 
     /**
      * Adds <offers> element. (See https://yandex.ru/support/webmaster/goods-prices/technical-requirements.xml#offers)
@@ -285,8 +334,8 @@ class Generator
         $this->writer->startElement('offers');
 
         /** @var OfferInterface $offer */
-        foreach ($offers as $offer) {
-            if ($offer instanceof OfferInterface) {
+        foreach($offers as $offer){
+            if($offer instanceof OfferInterface){
                 $this->addOffer($offer);
             }
         }
@@ -300,7 +349,7 @@ class Generator
     private function addOfferDeliveryOptions(OfferInterface $offer)
     {
         $options = $offer->getDeliveryOptions();
-        if (!empty($options)) {
+        if(!empty($options)){
             $this->addDeliveries($options);
         }
     }
@@ -311,12 +360,12 @@ class Generator
     private function addOfferParams(OfferInterface $offer)
     {
         /** @var OfferParam $param */
-        foreach ($offer->getParams() as $param) {
-            if ($param instanceof OfferParam) {
+        foreach($offer->getParams() as $param){
+            if($param instanceof OfferParam){
                 $this->writer->startElement('param');
 
                 $this->writer->writeAttribute('name', $param->getName());
-                if ($param->getUnit()) {
+                if($param->getUnit()){
                     $this->writer->writeAttribute('unit', $param->getUnit());
                 }
                 $this->writer->text($param->getValue());
@@ -332,7 +381,7 @@ class Generator
     private function addOfferCondition(OfferInterface $offer)
     {
         $params = $offer->getCondition();
-        if ($params instanceof OfferCondition) {
+        if($params instanceof OfferCondition){
             $this->writer->startElement('condition');
             $this->writer->writeAttribute('type', $params->getType());
             $this->writer->writeElement('reason', $params->getReasonText());
@@ -342,25 +391,25 @@ class Generator
 
     /**
      * @param string $name
-     * @param mixed  $value
+     * @param mixed $value
      *
      * @return bool
      */
     private function addOfferElement($name, $value)
     {
-        if ($value === null) {
+        if($value === null){
             return false;
         }
 
-        if ($value instanceof Cdata) {
+        if($value instanceof Cdata){
             $this->writer->startElement($name);
-            $this->writer->writeCdata((string) $value);
+            $this->writer->writeCdata((string)$value);
             $this->writer->endElement();
 
             return true;
         }
 
-        if (\is_bool($value)) {
+        if(\is_bool($value)){
             $value = $value ? 'true' : 'false';
         }
         $this->writer->writeElement($name, $value);
